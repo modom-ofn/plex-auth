@@ -46,6 +46,9 @@ services:
       - "8089:8080"
     environment:
       - DATABASE_URL=postgres://plexauth:plexpass@postgres:5432/plexauthdb?sslmode=disable
+      #replace-with-32+char-random-secret
+      - SESSION_SECRET=bqxg48w7ee2cmntziv60f4r0y8qsisyj
+      - APP_BASE_URL=http://localhost:8089
     depends_on:
       postgres:
         condition: service_healthy

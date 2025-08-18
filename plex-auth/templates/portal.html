@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PlexAuth — Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:#0f172a;color:#e2e8f0;margin:0}
+    .wrap{max-width:720px;margin:6rem auto;padding:2rem;background:#111827;border-radius:16px;border:1px solid #1f2937}
+    h1{margin:0 0 1rem}
+    .muted{color:#94a3b8}
+    .btn{padding:.5rem 1rem;border:1px solid #334155;border-radius:10px;background:#0b1220;color:#e2e8f0;cursor:pointer}
+    form{display:inline}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Welcome, {{ .Username }}</h1>
+    <p class="muted">You now have access to the portal. Only authenticated Plex users can view this page.</p>
+    <form method="post" action="/logout">
+      <button class="btn" type="submit">Log out</button>
+    </form>
+  </div>
+</body>
+</html>

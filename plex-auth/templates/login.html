@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PlexAuth — Sign In</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Expose base URL to JS without inline script -->
+  <meta name="app-base-url" content="{{ .BaseURL }}">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:#0f172a;color:#e2e8f0;margin:0}
+    .wrap{max-width:720px;margin:6rem auto;padding:2rem;background:#111827;border-radius:16px;border:1px solid #1f2937}
+    h1,h2{margin:0 0 1rem}
+    a.btn,button.btn{display:inline-block;padding:.75rem 1rem;border:1px solid #334155;border-radius:10px;background:#0b1220;text-decoration:none;color:#e2e8f0;cursor:pointer}
+    .muted{color:#94a3b8}
+    .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2rem;background:#0b1220;padding:.4rem .8rem;border-radius:10px;border:1px solid #334155;letter-spacing:.08em}
+    .row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+    .ok{color:#86efac}.warn{color:#fbbf24}
+    #linkStep{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>PlexAuth</h1>
+    <p class="muted">Sign in with your Plex account to continue.</p>
+    <p><button id="startBtn" class="btn" type="button">Sign in with Plex</button></p>
+
+    <div id="linkStep">
+      <h2>Complete sign-in</h2>
+      <p>We opened <a href="https://plex.tv/link" target="_blank" rel="noopener">https://plex.tv/link</a> in a new tab and copied your code.</p>
+      <p>Enter this code:</p>
+      <p class="code" id="codeDisplay"></p>
+      <div class="row">
+        <a id="openLink" class="btn" href="https://plex.tv/link" target="_blank" rel="noopener">Open plex.tv/link</a>
+        <button id="copyBtn" class="btn" type="button">Copy code</button>
+      </div>
+      <p id="status" class="muted" style="margin-top:1rem">Waiting for you to complete linking in Plex…</p>
+    </div>
+  </div>
+
+  <!-- Load external JS (same-origin, allowed by CSP `script-src 'self'`) -->
+  <script src="/static/login.js" defer></script>
+</body>
+</html>
