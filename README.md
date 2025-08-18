@@ -281,6 +281,20 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 
 ---
 
+## 🧑‍💻 Items in the backlog
+
+- Add container image to ghcr.io & docker hub; makes it so others don't have to compile
+- Security Hardening
+- Authentication flow robustness
+- App & backend reliability
+- Database & data management improvements
+- Container & runtime hardening
+- UX polish
+- LDAP / directory optimization
+- Scale & deploy optimization
+
+---
+
 ## 🤝 Contributing
 
 Issues and PRs welcome:  
