@@ -57,11 +57,7 @@ func main() {
 
 	// Public pages
 	r.HandleFunc("/", loginPageHandler).Methods("GET")
-	r.HandleFunc("/auth/start", startAuthHandler).Methods("GET")
-	r.HandleFunc("/auth/callback/{pin}", callbackHandler).Methods("GET")
 	r.HandleFunc("/logout", logoutHandler).Methods("POST")
-	r.HandleFunc("/auth/poll/{pin}", pollAuthHandler).Methods("GET")
-	r.HandleFunc("/auth/start.json", startAuthJSONHandler).Methods("POST")
 	r.HandleFunc("/auth/start-web", startAuthWebHandler).Methods("POST")
 	r.HandleFunc("/auth/forward", forwardHandler).Methods("GET")
 
