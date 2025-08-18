@@ -2,7 +2,6 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go)](https://go.dev/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-green.svg)](https://github.com/modom-ofn/plex-auth?tab=GPL-3.0-1-ov-file#readme)
-[![GHCR](https://img.shields.io/badge/GHCR-available-181717?logo=github)](https://github.com/modom-ofn/plex-auth/pkgs/container/plex-auth)
 
 **PlexAuth** is a lightweight, self-hosted authentication gateway for Plex users.  
 It reproduces Overseerr’s clean popup login (no code entry), stores the Plex token, and issues a secure session cookie for your intranet portal.
@@ -75,8 +74,10 @@ docker compose up -d
 ```
 **Open:** http://localhost:8089
 
+
+
 ### **Docker Compose Full Stack **
-Use the following docker compose for a full stack setup (postgres, plex-auth, openldap, ldap-sync, phpldapadmin). This will spin up LDAP bits only when needed.
+Use the following docker compose for a full stack setup (postgres, plex-auth, openldap, ldap-sync, phpldapadmin). This will spin up the LDAP bits needed so downstream apps can use Plex authenticate through LDAP.
 
 ```yaml
 version: "3.9"
@@ -280,4 +281,4 @@ https://github.com/modom-ofn/plex-auth/issues
 
 ## 📜 License
 
-MIT — https://opensource.org/licenses/MIT
+GPL-3.0 — https://opensource.org/license/lgpl-3-0
