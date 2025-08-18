@@ -1,0 +1,100 @@
+:root{
+  --bg:#0b1020; --bg2:#0f172a; --card:#111827; --muted:#94a3b8;
+  --border:#1f2937; --text:#e5e7eb; --brand:#f59e0b; --ok:#86efac; --warn:#fbbf24;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+
+.bg{
+  background: radial-gradient(60% 60% at 10% 10%, #1e293b 0%, transparent 60%),
+              radial-gradient(60% 60% at 90% 20%, #0b1220 0%, transparent 55%),
+              linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+}
+
+.center{min-height:100%;display:grid;place-items:center;padding:2rem}
+.card{
+  width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);
+  padding:2rem;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.35);
+}
+
+.brand{display:flex;flex-direction:column;align-items:center;gap:.5rem;margin-bottom:1.25rem}
+.logo{width:42px;height:42px;border-radius:8px}
+h1{font-size:1.5rem;margin:0}
+.muted{color:var(--muted)}
+.footnote{margin-top:1rem;color:var(--muted);font-size:.9rem}
+
+.btn{
+  display:inline-flex;align-items:center;gap:.5rem;cursor:pointer;
+  background:#0b1220;border:1px solid var(--border);color:var(--text);
+  border-radius:12px;padding:.8rem 1rem;font-weight:600;transition:.15s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.small{padding:.45rem .7rem;font-weight:500;border-radius:10px}
+.btn.plex{background:#151a2d;border-color:#2a3354}
+.btn.plex:hover{box-shadow:0 6px 24px rgba(245,158,11,.25)}
+.btn.ghost{background:transparent}
+
+.btn-icon{width:20px;height:20px}
+
+.modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.55);
+  display:grid;place-items:center;padding:1rem;
+}
+.hidden{display:none}
+.modal-card{
+  width:100%;max-width:560px;background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:1.5rem 1.25rem 1.25rem;
+}
+
+.code-wrap{display:flex;align-items:center;gap:.75rem;margin:1rem 0}
+.code{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:2rem;letter-spacing:.08em;
+  background:#0b1220;border:1px solid var(--border);padding:.35rem .8rem;border-radius:10px;
+}
+
+.progress{display:flex;align-items:center;gap:.6rem;color:var(--muted)}
+.spinner{
+  width:16px;height:16px;border-radius:50%;border:2px solid #2b334a;border-top-color:var(--brand);
+  animation:spin .8s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.row{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+
+.ok{color:var(--ok)} .warn{color:var(--warn)}
+
+.plex-btn {
+  background-color: #1f1f1f; /* dark background */
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0px 3px 6px rgba(0,0,0,0.3);
+}
+
+.plex-btn:hover {
+  background-color: #e5a00d; /* Plex orange */
+  color: #1f1f1f;
+  transform: translateY(-2px);
+}
+
+.plex-btn:active {
+  transform: translateY(0px);
+  background-color: #c88a0b;
+}
+
+.plex-logo {
+  width: 22px;
+  height: 22px;
+}

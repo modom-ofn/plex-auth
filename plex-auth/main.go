@@ -18,7 +18,7 @@ var (
 	db            *sql.DB
 	tmpl          *template.Template
 	sessionSecret = []byte(envOr("SESSION_SECRET", "dev-insecure-change-me"))
-	appBaseURL    = envOr("APP_BASE_URL", "http://localhost:8089")
+	appBaseURL    = envOr("APP_BASE_URL", "http://localhost:8089") // <— string, used elsewhere
 )
 
 func envOr(k, d string) string {
@@ -62,6 +62,9 @@ func main() {
 	r.HandleFunc("/logout", logoutHandler).Methods("POST")
 	r.HandleFunc("/auth/poll/{pin}", pollAuthHandler).Methods("GET")
 	r.HandleFunc("/auth/start.json", startAuthJSONHandler).Methods("POST")
+	r.HandleFunc("/auth/start-web", startAuthWebHandler).Methods("POST")
+	r.HandleFunc("/auth/forward", forwardHandler).Methods("GET")
+
 
 	// Protected portal
 	r.Handle("/portal", authMiddleware(http.HandlerFunc(portalHandler))).Methods("GET")
