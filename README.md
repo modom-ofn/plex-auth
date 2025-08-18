@@ -44,8 +44,6 @@ services:
       retries: 10
 
   plex-auth:
-    # Use a prebuilt image in production; keep "build" for local dev.
-    # image: ghcr.io/YOUR_GITHUB_USERNAME/plex-auth:latest
     build: ./plex-auth
     ports:
       - "8089:8080"
@@ -100,7 +98,6 @@ services:
     networks: [authnet]
 
   plex-auth:
-    # image: ghcr.io/YOUR_GITHUB_USERNAME/plex-auth:latest
     build: ./plex-auth
     ports:
       - "8089:8080"
