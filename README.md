@@ -258,15 +258,27 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 .
 ├── Dockerfile
 ├── docker-compose.yml
-├── main.go
-├── handlers.go
-├── templates/
-│   ├── login.html
-│   └── portal.html
-├── static/
-│   ├── styles.css
-│   ├── login.js
-│   └── bg.jpg        # optional hero image
+├── LICENSE
+├── ldap-seed/
+│   └── 01-ou-users.ldif
+├── ldap-sync/
+│   ├── Dockerfile
+│   ├── go.mod
+│   └── main.go
+├── plex-auth/
+│   ├── db.go
+│   ├── Dockerfile
+│   ├── go.mod
+│   ├── handlers.go
+│   ├── main.go
+│   ├── templates/
+│   	├── login.html
+│   	└── portal.html
+│   ├── static/
+│   	├── styles.css
+│   	├── login.js
+│   	├── login.svg     # optional login button svg icon
+│   	└── bg.jpg        # optional hero image
 └── README.md
 ```
 
