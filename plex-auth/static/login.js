@@ -1,75 +1,39 @@
 (function(){
-  const meta = document.querySelector('meta[name="app-base-url"]');
-  const base = meta ? meta.content : '';
-  const startBtn   = document.getElementById('startBtn');
-  const linkStep   = document.getElementById('linkStep');
-  const codeDisplay= document.getElementById('codeDisplay');
-  const copyBtn    = document.getElementById('copyBtn');
-  const statusEl   = document.getElementById('status');
+  const base = (document.querySelector('meta[name="app-base-url"]')||{}).content || '';
+  const btn = document.getElementById('startBtn');
 
-  let currentCode = null;
-  let pollTimer   = null;
+  function openCenteredPopup(url, title){
+    const w = 520, h = 680;
+    const y = window.top.outerHeight/2 + window.top.screenY - (h/2);
+    const x = window.top.outerWidth /2 + window.top.screenX - (w/2);
+    return window.open(url, title, `width=${w},height=${h},left=${x},top=${y},resizable,scrollbars`);
+  }
 
-  async function startAuthClickHandler(){
+  async function startWeb(){
+    btn.disabled = true;
     try {
-      const res = await fetch(`${base}/auth/start.json`, {
-        method: 'POST',
-        credentials: 'include'
-      });
+      const res = await fetch(`${base}/auth/start-web`, { method:'POST', credentials:'include' });
       if (!res.ok) throw new Error('start failed');
-      const { code, linkUrl, pollUrl } = await res.json();
-      currentCode = code;
+      const { authUrl } = await res.json();
 
-      // reveal UI
-      linkStep.style.display = 'block';
-      codeDisplay.textContent = code;
+      const popup = openCenteredPopup(authUrl, 'Plex Login');
 
-      // open plex.tv/link in same gesture (avoids popup blocker)
-      try { window.open(linkUrl, '_blank', 'noopener'); } catch(e) {}
-
-      // attempt clipboard copy
-      await copyCode();
-
-      // start polling
-      startPolling(pollUrl);
+      const handler = (evt) => {
+        try {
+          if (evt.origin !== window.location.origin) return;
+          if (evt.data && evt.data.type === 'plex-auth' && evt.data.ok === true) {
+            window.removeEventListener('message', handler);
+            window.location = `${base}/portal`;
+          }
+        } catch(e){}
+      };
+      window.addEventListener('message', handler);
     } catch (e) {
-      if (statusEl) statusEl.textContent = 'Failed to initiate sign-in. Please try again.';
+      console.error(e);
+      btn.disabled = false;
+      alert('Could not start Plex login. Try again.');
     }
   }
 
-  async function copyCode(){
-    if (!currentCode) return;
-    try {
-      await navigator.clipboard.writeText(currentCode);
-      statusEl.textContent = 'Code copied. Enter it on plex.tv/link. Waiting for confirmation…';
-    } catch (e) {
-      statusEl.textContent = 'Please copy the code and enter it on plex.tv/link. Waiting for confirmation…';
-    }
-  }
-
-  function startPolling(pollUrl){
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(async () => {
-      try {
-        const res = await fetch(pollUrl, { credentials: 'include' });
-        if (res.status === 200) {
-          clearInterval(pollTimer);
-          statusEl.innerHTML = "<span class='ok'>Linked! Redirecting to portal…</span>";
-          setTimeout(() => { window.location = `${base}/portal`; }, 400);
-        } else if (res.status === 202) {
-          // pending; keep polling
-        } else if (res.status === 404) {
-          statusEl.innerHTML = "<span class='warn'>Code not found or expired. Reload and try again.</span>";
-          clearInterval(pollTimer);
-        } else {
-          // temporary error; keep polling
-        }
-      } catch (e) {
-        // network hiccup; ignore
-      }
-    }, 2000);
-  }
-
-  if (startBtn) startBtn.addEventListener('click', startAuthClickHandler);
-  if (copyBtn)  copyBtn.addEventListener('click', copyCode);
+  btn && btn.addEventListener('click', startWeb);
 })();
