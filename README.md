@@ -6,7 +6,13 @@
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-green.svg)](https://github.com/modom-ofn/plex-auth?tab=GPL-3.0-1-ov-file#readme)
 
 **PlexAuth** is a lightweight, self-hosted authentication gateway for Plex users.  
-It reproduces Overseerr’s clean popup login (no code entry), stores the Plex token, and issues a secure session cookie for your intranet portal.
+It reproduces Overseerr’s clean popup login (no code entry), stores the Plex token, and issues a secure session cookie for your intranet portal. It can optionally be expanded to include LDAP integration for any downstream app requirements.
+
+<img width="2525" height="1227" alt="plex-auth-login" src="https://github.com/user-attachments/assets/57aecd34-e6f5-4905-9d80-05de2c7ff068" />
+
+<img width="643" height="838" alt="plex-auth-signin" src="https://github.com/user-attachments/assets/c656fafe-618b-49ff-b7e9-ef3290913caa" />
+
+<img width="986" height="257" alt="plex-auth-portal" src="https://github.com/user-attachments/assets/6d536b85-8deb-40cf-a451-af540b420926" />
 
 ---
 
