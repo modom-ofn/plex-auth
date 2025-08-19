@@ -23,7 +23,7 @@
           if (evt.origin !== window.location.origin) return;
           if (evt.data && evt.data.type === 'plex-auth' && evt.data.ok === true) {
             window.removeEventListener('message', handler);
-            window.location = `${base}/portal`;
+            window.location = `${base}/home`;
           }
         } catch(e){}
       };

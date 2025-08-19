@@ -75,6 +75,9 @@ Create a .env next to it:
 POSTGRES_PASSWORD=change-me-long-random
 SESSION_SECRET=change-me-32+chars-random
 APP_BASE_URL=http://localhost:8089
+PLEX_OWNER_TOKEN=plxxxxxxxxxxxxxxxxxxxx
+PLEX_SERVER_MACHINE_ID=abcd1234ef5678901234567890abcdef12345678
+PLEX_SERVER_NAME=My-Plex-Server
 ```
 Then:
 ```bash
@@ -192,6 +195,10 @@ POSTGRES_PASSWORD=change-me-long-random
 SESSION_SECRET=change-me-32+chars-random
 APP_BASE_URL=http://localhost:8089
 LDAP_ADMIN_PASSWORD=change-me-strong
+PLEX_OWNER_TOKEN=plxxxxxxxxxxxxxxxxxxxx
+PLEX_SERVER_MACHINE_ID=abcd1234ef5678901234567890abcdef12345678
+PLEX_SERVER_NAME=My-Plex-Server
+	# If both PLEX_SERVER_MACHINE & PLEX_SERVER_NAME are set, MACHINE_ID wins.
 ```
 Run core only:
 ```bash

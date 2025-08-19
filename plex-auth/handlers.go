@@ -1,19 +1,23 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
-	"io"           // ← needed for io.ReadAll
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 )
 
 // Use the same client identifier you used before
 var plexClientID = "plex-auth-go"
+
+// -------- Shared structs you already use --------
 
 type PinResponse struct {
 	ID               int    `json:"id"`
@@ -34,6 +38,8 @@ type TokenResponse struct {
 		UUID     string `json:"uuid"`
 	} `json:"user"`
 }
+
+// ---------------------- Login (web popup) ----------------------
 
 // POST /auth/start-web
 func startAuthWebHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +75,7 @@ func startAuthWebHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Persist mapping code→id so we can look it up later (you already implemented savePin)
+	// Persist mapping code→id so we can look it up later
 	_ = savePin(pin.Code, pin.ID)
 
 	// Build the Plex Auth App URL that opens in the popup
@@ -127,7 +133,7 @@ func forwardHandler(w http.ResponseWriter, r *http.Request) {
 
 	if ok {
 		// Fetch profile, save, and set session cookie so the opener is already logged in
-		profile, perr := fetchUserProfile(tokenResp.AuthToken) // you already have this helper
+		profile, perr := fetchUserProfile(tokenResp.AuthToken)
 		if perr == nil {
 			saveUser(TokenResponse{
 				AuthToken: tokenResp.AuthToken,
@@ -141,13 +147,15 @@ func forwardHandler(w http.ResponseWriter, r *http.Request) {
 					UUID:     profile.User.UUID,
 				},
 			})
-			_ = setSessionCookie(w, profile.User.UUID, profile.User.Username)
+			if err := setSessionCookie(w, profile.User.UUID, profile.User.Username); err != nil {
+				log.Printf("setSessionCookie error: %v", err)
+			}
 		} else {
 			ok = false
 		}
 	}
 
-	// This tiny page needs inline JS to postMessage and close; relax CSP ONLY for this response.
+	// Tiny page to notify opener and close; relax CSP ONLY for this response.
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'")
 
@@ -174,6 +182,8 @@ func loginPageHandler(w http.ResponseWriter, r *http.Request) {
 		"BaseURL": appBaseURL,
 	})
 }
+
+// ---------- Account profile (JSON) ----------
 
 type accountResponse struct {
 	User struct {
@@ -218,39 +228,323 @@ func fetchUserProfile(authToken string) (accountResponse, error) {
 	return profile, nil
 }
 
-func portalHandler(w http.ResponseWriter, r *http.Request) {
-	username := usernameFrom(r.Context())
-	render(w, "portal.html", map[string]any{
-		"Username": username,
-	})
-}
-
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	clearSessionCookie(w)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-// ---------- tiny templating helpers + username context ----------
+// ---------------- Plex authorization (owner token required) ----------------
 
-func render(w http.ResponseWriter, name string, data any) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.ExecuteTemplate(w, name, data); err != nil {
-		log.Printf("template %s error: %v", name, err)
-		http.Error(w, "template error", http.StatusInternalServerError)
+type deviceList struct {
+	XMLName xml.Name `xml:"MediaContainer"`
+	Devices []device `xml:"Device"`
+}
+type device struct {
+	Name             string `xml:"name,attr"`
+	Provides         string `xml:"provides,attr"`
+	ClientIdentifier string `xml:"clientIdentifier,attr"` // machine identifier
+	Product          string `xml:"product,attr"`
+}
+
+var cachedMachineID string
+var cachedMachineIDTime time.Time
+
+// resolvePlexServerMachineID finds the target PMS machine id using owner token.
+// Priority: env PLEX_SERVER_MACHINE_ID → resolve by PLEX_SERVER_NAME → first PMS found.
+func resolvePlexServerMachineID() (string, error) {
+	if plexOwnerToken == "" {
+		return "", fmt.Errorf("PLEX_OWNER_TOKEN not set")
 	}
-}
+	if plexServerMachineID != "" {
+		return plexServerMachineID, nil
+	}
+	// small cache (~10 minutes) to avoid hammering Plex
+	if cachedMachineID != "" && time.Since(cachedMachineIDTime) < 10*time.Minute {
+		return cachedMachineID, nil
+	}
 
-type userKey struct{}
-
-func withUsername(ctx context.Context, u string) context.Context {
-	return context.WithValue(ctx, userKey{}, u)
-}
-
-func usernameFrom(ctx context.Context) string {
-	if v := ctx.Value(userKey{}); v != nil {
-		if s, ok := v.(string); ok {
-			return s
+	req, _ := http.NewRequest("GET", "https://plex.tv/api/resources?includeHttps=1", nil)
+	req.Header.Set("X-Plex-Token", plexOwnerToken)
+	req.Header.Set("Accept", "application/xml")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("resources request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("resources returned %d: %s", resp.StatusCode, string(b))
+	}
+	var dl deviceList
+	if err := xml.NewDecoder(resp.Body).Decode(&dl); err != nil {
+		return "", fmt.Errorf("resources xml decode: %w", err)
+	}
+	// Find PMS
+	var first string
+	for _, d := range dl.Devices {
+		if !strings.Contains(d.Provides, "server") && d.Product != "Plex Media Server" {
+			continue
+		}
+		if first == "" {
+			first = d.ClientIdentifier
+		}
+		if plexServerName != "" && d.Name == plexServerName {
+			cachedMachineID = d.ClientIdentifier
+			cachedMachineIDTime = time.Now()
+			return cachedMachineID, nil
 		}
 	}
-	return ""
+	if first == "" {
+		return "", fmt.Errorf("no Plex Media Server device found on owner account")
+	}
+	cachedMachineID = first
+	cachedMachineIDTime = time.Now()
+	return cachedMachineID, nil
+}
+
+// /api/servers/{machineId}/shared_servers returns <SharedServer ...> entries
+type sharedServersDoc struct {
+	XMLName       xml.Name           `xml:"MediaContainer"`
+	SharedServers []sharedServerEntry `xml:"SharedServer"`
+}
+
+type sharedServerEntry struct {
+	ID        int    `xml:"id,attr"`        // shared record id
+	Username  string `xml:"username,attr"`  // the user's Plex username
+	Email     string `xml:"email,attr"`     // email (if available)
+	UserID    int    `xml:"userID,attr"`    // numeric user id (not UUID)
+	Owned     int    `xml:"owned,attr"`     // 1 if this user owns the server (for owner)
+	// ... plus many library <Section> children we don't need for auth check
+}
+
+// cache the shared-servers response for a short period
+var (
+	sharedCacheMu sync.Mutex
+	sharedCache   = struct {
+		machineID string
+		fetched   time.Time
+		entries   []sharedServerEntry
+	}{}
+)
+
+// --- Owner identity (from PLEX_OWNER_TOKEN), cached to avoid refetching ---
+
+type ownerAccount struct {
+	UUID     string `json:"uuid"`
+	Username string `json:"username"`
+}
+
+var (
+	ownerCache     ownerAccount
+	ownerCacheTime time.Time
+)
+
+func fetchOwnerIdentity() (ownerAccount, error) {
+	if plexOwnerToken == "" {
+		return ownerAccount{}, fmt.Errorf("PLEX_OWNER_TOKEN not set")
+	}
+	// cache for 10 minutes
+	if time.Since(ownerCacheTime) < 10*time.Minute && ownerCache.UUID != "" {
+		return ownerCache, nil
+	}
+
+	req, _ := http.NewRequest("GET", "https://plex.tv/users/account.json", nil)
+	req.Header.Set("X-Plex-Token", plexOwnerToken)
+	req.Header.Set("Accept", "application/json")
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return ownerAccount{}, fmt.Errorf("owner /users/account.json failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return ownerAccount{}, fmt.Errorf("owner account returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Reuse accountResponse shape
+	var acc accountResponse
+	if err := json.Unmarshal(body, &acc); err != nil {
+		return ownerAccount{}, fmt.Errorf("owner account decode: %w", err)
+	}
+	ownerCache = ownerAccount{
+		UUID:     strings.TrimSpace(acc.User.UUID),
+		Username: strings.TrimSpace(acc.User.Username),
+	}
+	ownerCacheTime = time.Now()
+	return ownerCache, nil
+}
+
+func fetchSharedServers(machineID string) ([]sharedServerEntry, error) {
+	// cache for 5 minutes
+	sharedCacheMu.Lock()
+	if sharedCache.machineID == machineID && time.Since(sharedCache.fetched) < 5*time.Minute {
+		entries := sharedCache.entries
+		sharedCacheMu.Unlock()
+		return entries, nil
+	}
+	sharedCacheMu.Unlock()
+
+	url := fmt.Sprintf("https://plex.tv/api/servers/%s/shared_servers", machineID)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("X-Plex-Token", plexOwnerToken)
+	req.Header.Set("Accept", "application/xml")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("shared_servers request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("shared_servers returned %d: %s", resp.StatusCode, string(b))
+	}
+
+	var doc sharedServersDoc
+	if err := xml.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, fmt.Errorf("shared_servers xml decode: %w", err)
+	}
+
+	sharedCacheMu.Lock()
+	sharedCache.machineID = machineID
+	sharedCache.fetched = time.Now()
+	sharedCache.entries = doc.SharedServers
+	sharedCacheMu.Unlock()
+
+	return doc.SharedServers, nil
+}
+
+// -------- Plex Home users (owner token) --------
+
+type homeUsers struct {
+	Users []homeUser `xml:"User"`
+}
+type homeUser struct {
+	ID       int    `xml:"id,attr"`
+	UUID     string `xml:"uuid,attr"`
+	Username string `xml:"username,attr"`
+	// There are more attributes (email, protected, etc.) we don’t need here
+}
+
+// fetchHomeUsers returns the list of users in the owner’s Plex Home.
+// Requires PLEX_OWNER_TOKEN.
+func fetchHomeUsers() ([]homeUser, error) {
+	if plexOwnerToken == "" {
+		return nil, fmt.Errorf("PLEX_OWNER_TOKEN not set")
+	}
+	req, _ := http.NewRequest("GET", "https://plex.tv/api/home/users", nil)
+	req.Header.Set("X-Plex-Token", plexOwnerToken)
+	req.Header.Set("Accept", "application/xml")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("home users request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("home users returned %d: %s", resp.StatusCode, string(b))
+	}
+
+	var hu homeUsers
+	if err := xml.NewDecoder(resp.Body).Decode(&hu); err != nil {
+		return nil, fmt.Errorf("home users xml decode: %w", err)
+	}
+	return hu.Users, nil
+}
+
+// isUserAuthorizedOnServer returns true if the Plex UUID (preferred) or username has access.
+// Order: owner → server's SharedServer entries → Plex Home users
+func isUserAuthorizedOnServer(userUUID string, username string) (bool, error) {
+	if plexOwnerToken == "" {
+		return false, fmt.Errorf("PLEX_OWNER_TOKEN not set")
+	}
+
+	// Owner short-circuit (owners don't appear in shared lists)
+	if owner, err := fetchOwnerIdentity(); err == nil {
+		if (userUUID != "" && strings.EqualFold(userUUID, owner.UUID)) ||
+			(username != "" && strings.EqualFold(username, owner.Username)) {
+			return true, nil
+		}
+	} else {
+		log.Printf("authz: fetchOwnerIdentity error: %v", err)
+	}
+
+	// Resolve target PMS
+	machineID, err := resolvePlexServerMachineID()
+	if err != nil {
+		return false, err
+	}
+
+	// 1) Check /shared_servers (matches by username; UUID not provided here)
+	entries, err := fetchSharedServers(machineID)
+	if err != nil {
+		return false, err
+	}
+	unameLower := strings.ToLower(strings.TrimSpace(username))
+	if unameLower != "" {
+		for _, e := range entries {
+			if strings.ToLower(e.Username) == unameLower {
+				return true, nil
+			}
+		}
+	}
+
+	// 2) Fallback: Plex Home users (can match by UUID or username)
+	home, err := fetchHomeUsers()
+	if err != nil {
+		log.Printf("authz: fetchHomeUsers error: %v", err)
+		return false, nil
+	}
+	uuidTrim := strings.TrimSpace(userUUID)
+	for _, u := range home {
+		if uuidTrim != "" && u.UUID == uuidTrim {
+			return true, nil
+		}
+		if unameLower != "" && strings.ToLower(u.Username) == unameLower {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// ---------------- Portal ----------------
+
+func meHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"username": usernameFrom(r.Context()),
+		"uuid":     uuidFrom(r.Context()),
+	})
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	uname := usernameFrom(r.Context())
+	uid := uuidFrom(r.Context())
+
+	authorized := false
+	var err error
+	if uname == "" && uid == "" {
+		log.Printf("home: no username/uuid in session; treating as not authorized")
+	} else {
+		authorized, err = isUserAuthorizedOnServer(uid, uname)
+		if err != nil {
+			log.Printf("home authz check failed for %s (%s): %v", uname, uid, err)
+		}
+	}
+
+	if authorized {
+		render(w, "portal_authorized.html", map[string]any{
+			"Username": uname,
+		})
+		return
+	}
+	render(w, "portal_unauthorized.html", map[string]any{
+		"Username": uname,
+	})
 }

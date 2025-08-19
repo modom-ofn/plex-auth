@@ -4,22 +4,24 @@
   <meta charset="utf-8">
   <title>PlexAuth — Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;background:#0f172a;color:#e2e8f0;margin:0}
-    .wrap{max-width:720px;margin:6rem auto;padding:2rem;background:#111827;border-radius:16px;border:1px solid #1f2937}
-    h1{margin:0 0 1rem}
-    .muted{color:#94a3b8}
-    .btn{padding:.5rem 1rem;border:1px solid #334155;border-radius:10px;background:#0b1220;color:#e2e8f0;cursor:pointer}
-    form{display:inline}
-  </style>
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body>
-  <div class="wrap">
-    <h1>Welcome, {{ .Username }}</h1>
-    <p class="muted">You now have access to the portal. Only authenticated Plex users can view this page.</p>
-    <form method="post" action="/logout">
-      <button class="btn" type="submit">Log out</button>
-    </form>
-  </div>
+<body class="bg">
+  <main class="center">
+    <section class="card">
+      <h1>Welcome, {{ .Username }}</h1>
+      <p class="muted">You’re logged in with your Plex account. Only authenticated Plex users can view this page.</p>
+
+      {{ if .Authorized }}
+        <button class="btn badge success" disabled>✔ Plex Authorized</button>
+      {{ else }}
+        <button class="btn badge danger" disabled>✖ Plex Not Authorized</button>
+      {{ end }}
+
+      <div style="margin-top:1.25rem">
+        <a class="btn" href="/logout" onclick="event.preventDefault(); fetch('/logout',{method:'POST'}).then(()=>location.href='/');">Log out</a>
+      </div>
+    </section>
+  </main>
 </body>
 </html>
