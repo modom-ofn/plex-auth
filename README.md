@@ -213,7 +213,6 @@ Run core only:
 docker compose up -d
 ```
 Run with LDAP stack:
-Run core only:
 ```bash
 docker compose --profile ldap up -d
 ```
