@@ -261,9 +261,6 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 
 ```
 .
-├── Dockerfile
-├── docker-compose.yml
-├── LICENSE
 ├── ldap-seed/
 │   └── 01-ou-users.ldif
 ├── ldap-sync/
@@ -284,6 +281,7 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 │   	├── login.js
 │   	├── login.svg     # optional login button svg icon
 │   	└── bg.jpg        # optional hero image
+├── LICENSE
 └── README.md
 ```
 
