@@ -19,6 +19,9 @@ var (
 	tmpl          *template.Template
 	sessionSecret = []byte(envOr("SESSION_SECRET", "dev-insecure-change-me"))
 	appBaseURL    = envOr("APP_BASE_URL", "http://localhost:8089") // <— string, used elsewhere
+	plexOwnerToken       = envOr("PLEX_OWNER_TOKEN", "")
+    plexServerMachineID  = envOr("PLEX_SERVER_MACHINE_ID", "")
+    plexServerName       = envOr("PLEX_SERVER_NAME", "")
 )
 
 func envOr(k, d string) string {
@@ -62,8 +65,9 @@ func main() {
 	r.HandleFunc("/auth/forward", forwardHandler).Methods("GET")
 
 
-	// Protected portal
-	r.Handle("/portal", authMiddleware(http.HandlerFunc(portalHandler))).Methods("GET")
+	// Protected portals
+	r.Handle("/home", authMiddleware(http.HandlerFunc(homeHandler))).Methods("GET")
+	r.Handle("/me", authMiddleware(http.HandlerFunc(meHandler))).Methods("GET")
 
 	log.Println("Starting Plex Auth on :8080")
 	if err := http.ListenAndServe(":8080", withSecurityHeaders(r)); err != nil {
@@ -153,8 +157,8 @@ func authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if claims, ok := token.Claims.(*sessionClaims); ok {
-			// stash username in context (or template data)
 			r = r.WithContext(withUsername(r.Context(), claims.Username))
+			r = r.WithContext(withUUID(r.Context(), claims.UUID))
 		}
 		next.ServeHTTP(w, r)
 	})

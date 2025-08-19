@@ -126,6 +126,32 @@ h1{font-size:1.6rem;margin:0}
   height: 22px;
 }
 
+/* badges for portal auth state */
+.btn.badge{
+  cursor: default;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: .6rem 1rem;
+  letter-spacing:.2px;
+}
+.btn.badge.success{
+  background:#0f3d25;
+  border:1px solid #1f7a4a;
+  color:#b8f3d3;
+}
+.btn.badge.danger{
+  background:#3d0f16;
+  border:1px solid #7a1f2f;
+  color:#f3b8c2;
+}
+
+.badge{
+  display:inline-block;padding:.35rem .55rem;border-radius:999px;
+  font-weight:700;font-size:.85rem;border:1px solid transparent
+}
+.badge.ok{background:#052e1a;border-color:#0a5a35;color:#b2f5cf}
+.badge.warn{background:#2c1605;border-color:#8a4b16;color:#ffd8b3}
+
 /* ========== Footer ========== */
 .footer{
   position:fixed;left:0;right:0;bottom:0;
