@@ -2,7 +2,7 @@
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/modomofn/plex-auth.svg)](https://hub.docker.com/r/modomofn/plex-auth)
 [![Docker Image Size](https://img.shields.io/docker/image-size/modomofn/plex-auth/latest)](https://hub.docker.com/r/modomofn/plex-auth)
-[![Go Version](https://img.shields.io/badge/Go-1.22%2B-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.23.10%2B-00ADD8?logo=go)](https://go.dev/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-green.svg)](https://github.com/modom-ofn/plex-auth?tab=GPL-3.0-1-ov-file#readme)
 
 **PlexAuth** is a lightweight, self-hosted authentication gateway for Plex users.  
