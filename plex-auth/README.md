@@ -5,16 +5,23 @@
 [![Go Version](https://img.shields.io/badge/Go-1.23.10%2B-00ADD8?logo=go)](https://go.dev/)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-green.svg)](https://github.com/modom-ofn/plex-auth?tab=GPL-3.0-1-ov-file#readme)
 
-**PlexAuth** is a lightweight, self-hosted authentication gateway for Plex users.  
-It reproduces Overseerr’s clean popup login (no code entry), stores the Plex token, and issues a secure session cookie for your intranet portal. It can optionally be expanded to include LDAP integration for any downstream app requirements.
+**PlexAuth** is a lightweight, self-hosted authentication gateway for Plex users.
+It reproduces Overseerr’s clean popup login (no code entry), stores the Plex token, and issues a secure session cookie for your intranet portal. It now differentiates between:
 
-You can find the Docker Hub Repository here: https://hub.docker.com/r/modomofn/plex-auth
+- ✅ Authorized Plex users → directed to the authorized home page.
+- 🚫 Unauthorized Plex users → shown the restricted home page.
+
+It can optionally be expanded to include LDAP integration for downstream app requirements.
+
+👉 Docker Hub: https://hub.docker.com/r/modomofn/plex-auth
 
 <img width="2525" height="1227" alt="plex-auth-login" src="https://github.com/user-attachments/assets/57aecd34-e6f5-4905-9d80-05de2c7ff068" />
 
 <img width="643" height="838" alt="plex-auth-signin" src="https://github.com/user-attachments/assets/c656fafe-618b-49ff-b7e9-ef3290913caa" />
 
-<img width="986" height="257" alt="plex-auth-portal" src="https://github.com/user-attachments/assets/6d536b85-8deb-40cf-a451-af540b420926" />
+<img width="1159" height="858" alt="plex-authorized-portal" src="https://github.com/user-attachments/assets/0ccc2a72-2454-4c61-b42e-594845442cee" />
+
+<img width="1158" height="821" alt="plex-unauthorized-portal" src="https://github.com/user-attachments/assets/73dda994-4db9-4637-b04e-b6b644cb6c2f" />
 
 ---
 
@@ -25,6 +32,7 @@ You can find the Docker Hub Repository here: https://hub.docker.com/r/modomofn/p
 - 🍪 Signed, HTTP-only session cookie
 - 🐳 Single binary, fully containerized
 - ⚙️ Simple env-based config
+- 🏠 Two distinct home pages: authorized vs. unauthorized
 
 ---
 
@@ -88,7 +96,7 @@ docker compose up -d
 
 
 ### **Docker Compose Full Stack **
-Use the following docker compose for a full stack setup (postgres, plex-auth, openldap, ldap-sync, phpldapadmin). This will spin up the LDAP bits needed so downstream apps can use Plex authenticate through LDAP.
+Use the following docker compose for a full stack setup (postgres, plex-auth, openldap, ldap-sync, phpldapadmin). Adds OpenLDAP, sync job, and phpLDAPadmin for downstream LDAP clients.
 
 ```yaml
 version: "3.9"
@@ -215,11 +223,13 @@ docker compose --profile ldap up -d
 
 ## ⚙️ Configuration
 
-| Variable         | Required | Default                     | Description                                                                            |
-|------------------|---------:|-----------------------------|----------------------------------------------------------------------------------------|
-| `APP_BASE_URL`   |    ✅     | `http://localhost:8089`     | Public URL of this service. If using HTTPS, cookies will be marked `Secure`.           |
-| `SESSION_SECRET` |    ✅     | _(none)_                    | Long random string for signing the session cookie (HS256).                             |
-| `PLEX_CLIENT_ID` |    ⛔     | `plex-auth-go`              | Optional override of the Plex client identifier.                                       |
+| Variable                 | Required | Default                     | Description                                                                            |
+|--------------------------|---------:|-----------------------------|----------------------------------------------------------------------------------------|
+| `APP_BASE_URL`           |    ✅    | `http://localhost:8089`     | Public URL of this service. If using HTTPS, cookies will be marked `Secure`.           |
+| `SESSION_SECRET`         |    ✅    | _(none)_                    | Long random string for signing the session cookie (HS256).                             |
+| `PLEX_OWNER_TOKEN`       |    ✅    | _(none)_                    | Token from Plex server owner; used to validate server membership.                      |
+| `PLEX_SERVER_MACHINE_ID` |    ✅    | _(none)_                    | Machine ID of your Plex server (preferred over name).                                  |
+| `PLEX_SERVER_NAME`       |    ⛔    | _(none)_                    | Optional: Plex server name (used if machine ID not set).                               |
 
 > Use a **long, random** `SESSION_SECRET` in production. Example generator: https://www.random.org/strings/
 
@@ -229,8 +239,11 @@ docker compose --profile ldap up -d
 
 1. User clicks **Sign in with Plex** → JS opens `https://app.plex.tv/auth#?...` in a popup.  
 2. Plex redirects back to your app at `/auth/forward` inside the popup.  
-3. Server reads token for the PIN, fetches Plex profile, stores username/token, and issues a signed session cookie.  
-4. Popup `postMessage`s success, closes, and the opener navigates to `/portal`.
+3. Server exchanges PIN → gets Plex profile → checks if user is authorized on your Plex server.  
+4. Stores profile in DB, issues signed cookie.
+5. Popup closes; opener navigates to:
+- `/home` → Authorized
+- `/restricted` → logged in, but not authorized
 
 ---
 
@@ -239,30 +252,33 @@ docker compose --profile ldap up -d
 - **Hero background:** put your image at `static/bg.jpg` (1920×1080 works great).  
 - **Logo:** in `templates/login.html`, swap the inline SVG for your logo.  
 - **Colors & button:** tweak in `static/styles.css` (`--brand` etc.).  
-- **Footer:** customizable “Powered by Plex” in `templates/login.html`.
+- **Footer:** customizable “Powered by Plex” in `templates/*.html`.
+- **Authorized / unauthorized pages:** edit `templates/portal_authorized.html` and `templates/portal_unauthorized.html`
 
 ---
 
 ## 🧑‍💻 Local development
 
 ```bash
-# with Go 1.22+
 go run .
 
-# visit
-# http://localhost:8080  (or via compose at http://localhost:8089)
+# visit http://localhost:8080
 ```
 
-Hot reload suggestion: https://github.com/cosmtrek/air
+With Docker Compose:
+```bash
+docker compose up -dark
+# visit http://localhost:8089
+```
 
 ---
 
 ## 🔒 Security best practices
 
 - Put PlexAuth behind **HTTPS** (e.g., Caddy / NGINX / Traefik).
-- Set strong `SESSION_SECRET`.
-- Limit external exposure of the portal with **firewall** rules if it’s internal-only.
-- Keep images updated (rebuild regularly for base image patches).
+- Set strong `SESSION_SECRET` and DB credentials.
+- Don’t expose Postgres or LDAP externally unless necessary.
+- Keep images updated.
 
 ---
 
@@ -270,9 +286,9 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 
 ```
 .
-├── ldap-seed/
+├── ldap-seed/ # optional LDAP seed
 │   └── 01-ou-users.ldif
-├── ldap-sync/
+├── ldap-sync/ # optional LDAP sync service
 │   ├── Dockerfile
 │   ├── go.mod
 │   └── main.go
@@ -284,7 +300,8 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 │   ├── main.go
 │   ├── templates/
 │   	├── login.html
-│   	└── portal.html
+│   	├── portal_authorized.html
+│   	└── portal_unauthorized.html
 │   ├── static/
 │   	├── styles.css
 │   	├── login.js
@@ -298,8 +315,8 @@ Hot reload suggestion: https://github.com/cosmtrek/air
 
 ## 🧑‍💻 Items in the backlog
 
-- (completed 8/19/2025) Add container image to docker hub
-- Security Hardening
+- ✅ (8/19/2025) Add container image to docker hub
+- ✅ (8/19/2025) Security Hardening
 - Authentication flow robustness
 - App & backend reliability
 - Database & data management improvements
