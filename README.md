@@ -19,7 +19,9 @@ It can optionally be expanded to include LDAP integration for downstream app req
 
 <img width="643" height="838" alt="plex-auth-signin" src="https://github.com/user-attachments/assets/c656fafe-618b-49ff-b7e9-ef3290913caa" />
 
-<img width="986" height="257" alt="plex-auth-portal" src="https://github.com/user-attachments/assets/6d536b85-8deb-40cf-a451-af540b420926" />
+<img width="1159" height="858" alt="plex-authorized-portal" src="https://github.com/user-attachments/assets/0ccc2a72-2454-4c61-b42e-594845442cee" />
+
+<img width="1158" height="821" alt="plex-unauthorized-portal" src="https://github.com/user-attachments/assets/73dda994-4db9-4637-b04e-b6b644cb6c2f" />
 
 ---
 
